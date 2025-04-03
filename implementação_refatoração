@@ -1,0 +1,174 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Scanner;
+
+class Produto {
+    private final int codigo;
+    private final String nome;
+    private final float preco;
+
+    public Produto(int codigo, String nome, float preco) {
+        this.codigo = codigo;
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    public int getCodigo() { return codigo; }
+    public String getNome() { return nome; }
+    public float getPreco() { return preco; }
+
+    public void infoProduto() {
+        System.out.println("Código: " + codigo);
+        System.out.println("Nome: " + nome);
+        System.out.printf("Preço: %.2f\n", preco);
+    }
+}
+
+class CarrinhoItem {
+    private final Produto produto;
+    private int quantidade;
+
+    public CarrinhoItem(Produto produto, int quantidade) {
+        this.produto = produto;
+        this.quantidade = quantidade;
+    }
+
+    public Produto getProduto() { return produto; }
+    public int getQuantidade() { return quantidade; }
+    public void aumentarQuantidade() { this.quantidade++; }
+    public float getPrecoTotal() { return produto.getPreco() * quantidade; }
+}
+
+public class Supermercado {
+    private static final int MAX_PRODUTOS = 50;
+    private static final int MAX_CARRINHO = 50;
+    private static final Scanner scanner = new Scanner(System.in);
+    private static final List<Produto> produtos = new ArrayList<>();
+    private static final List<CarrinhoItem> carrinho = new ArrayList<>();
+
+    private static int lerNumeroInteiroPositivo() {
+        while (!scanner.hasNextInt()) {
+            System.out.print("Entrada inválida. Digite um número válido: ");
+            scanner.nextLine();
+        }
+        int num = scanner.nextInt();
+        scanner.nextLine(); // Limpar buffer
+        return num > 0 ? num : lerNumeroInteiroPositivo();
+    }
+
+    private static float lerNumeroFloatPositivo() {
+        while (!scanner.hasNextFloat()) {
+            System.out.print("Entrada inválida. Digite um número válido: ");
+            scanner.nextLine();
+        }
+        float num = scanner.nextFloat();
+        scanner.nextLine();
+        return num > 0 ? num : lerNumeroFloatPositivo();
+    }
+
+    private static void cadastrarProduto() {
+        if (produtos.size() >= MAX_PRODUTOS) {
+            System.out.println("Limite de produtos atingido.");
+            return;
+        }
+        System.out.print("Digite o código do produto: ");
+        int codigo = lerNumeroInteiroPositivo();
+        if (produtos.stream().anyMatch(p -> p.getCodigo() == codigo)) {
+            System.out.println("Código já cadastrado!");
+            return;
+        }
+        System.out.print("Digite o nome do produto: ");
+        String nome = scanner.nextLine();
+        System.out.print("Digite o preço do produto: ");
+        float preco = lerNumeroFloatPositivo();
+        produtos.add(new Produto(codigo, nome, preco));
+        System.out.println("Produto cadastrado!");
+    }
+
+    private static void listarProdutos() {
+        if (produtos.isEmpty()) {
+            System.out.println("Nenhum produto cadastrado.");
+            return;
+        }
+        produtos.forEach(Produto::infoProduto);
+    }
+
+    private static void comprarProduto() {
+        System.out.print("Digite o código do produto: ");
+        int codigo = lerNumeroInteiroPositivo();
+        Optional<Produto> produtoOpt = produtos.stream().filter(p -> p.getCodigo() == codigo).findFirst();
+        
+        if (produtoOpt.isEmpty()) {
+            System.out.println("Produto não encontrado.");
+            return;
+        }
+        Produto produto = produtoOpt.get();
+        carrinho.stream().filter(item -> item.getProduto().getCodigo() == codigo)
+                .findFirst()
+                .ifPresentOrElse(CarrinhoItem::aumentarQuantidade, () -> {
+                    if (carrinho.size() < MAX_CARRINHO) {
+                        carrinho.add(new CarrinhoItem(produto, 1));
+                        System.out.println("Produto adicionado ao carrinho.");
+                    } else {
+                        System.out.println("Carrinho cheio.");
+                    }
+                });
+    }
+
+    private static void visualizarCarrinho() {
+        if (carrinho.isEmpty()) {
+            System.out.println("Carrinho vazio.");
+            return;
+        }
+        float total = 0;
+        for (CarrinhoItem item : carrinho) {
+            System.out.println("Produto: " + item.getProduto().getNome());
+            System.out.println("Quantidade: " + item.getQuantidade());
+            System.out.printf("Preço unitário: %.2f\n", item.getProduto().getPreco());
+            System.out.printf("Preço total: %.2f\n\n", item.getPrecoTotal());
+            total += item.getPrecoTotal();
+        }
+        System.out.printf("Total a pagar: %.2f\n", total);
+    }
+
+    private static void fecharPedido() {
+        if (carrinho.isEmpty()) {
+            System.out.println("Carrinho vazio. Não é possível fechar o pedido.");
+            return;
+        }
+        visualizarCarrinho();
+        carrinho.clear();
+        System.out.println("Pedido finalizado!");
+    }
+
+    private static void menu() {
+        while (true) {
+            System.out.println("\n=== Supermercado ===");
+            System.out.println("1. Cadastrar Produto");
+            System.out.println("2. Listar Produtos");
+            System.out.println("3. Comprar Produto");
+            System.out.println("4. Visualizar Carrinho");
+            System.out.println("5. Fechar Pedido");
+            System.out.println("6. Sair");
+            System.out.print("Escolha uma opção: ");
+            int opcao = lerNumeroInteiroPositivo();
+            switch (opcao) {
+                case 1 -> cadastrarProduto();
+                case 2 -> listarProdutos();
+                case 3 -> comprarProduto();
+                case 4 -> visualizarCarrinho();
+                case 5 -> fecharPedido();
+                case 6 -> {
+                    System.out.println("Saindo...");
+                    return;
+                }
+                default -> System.out.println("Opção inválida.");
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        menu();
+    }
+}
